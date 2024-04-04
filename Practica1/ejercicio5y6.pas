@@ -75,9 +75,9 @@ begin
 	reset(archivo_texto);
 	while not EOF(archivo_texto) do
 	begin
-		readln(archivo_texto,celu.cod_celular,celu.nombre);
-		readln(archivo_texto,celu.descripcion);
-		readln(archivo_texto,celu.precio,celu.stock_min,celu.stock_dis,celu.marca);
+		readln(archivo_texto, celu.cod_celular, celu.nombre);
+		readln(archivo_texto, celu.descripcion);
+		readln(archivo_texto, celu.precio, celu.stock_min, celu.stock_dis, celu.marca);
 		write(archivo_celus,celu);
 	end;
 	close(archivo_celus);
@@ -148,37 +148,83 @@ begin
 	close(archivo_celus);
 end;
 	
-procedure anadirCelular(var archivo_texto:text);
+procedure anadirCelular(var archivo_celus:archivo_celulares);
 var
 	nombre_fisico : string;
 	celu,aggcelu : celular;
 	flag : boolean;
 begin
+	writeln('Ingrese nombre de archivo binario: ');
+	readln(nombre_fisico);
+	assign(archivo_celus,nombre_fisico);
+	reset(archivo_celus);
+	leerCelu(aggcelu);
+	flag := false;
+	while not EOF(archivo_celus) and (flag=false) do
+	begin
+		read(archivo_celus,celu);
+		if (celu.nombre = aggcelu.nombre) then flag := true;
+	end;
+	if (flag = false) then write(archivo_celus,aggcelu)
+	else writeln('Ya existe el modelo: ',aggcelu.nombre);
+	close(archivo_celus);
+end;
+
+procedure modificarStock(var archivo_celus:archivo_celulares);
+var
+	nombre_fisico,marca : string;
+	celu : celular;
+	stock : integer;
+begin
+	writeln('Ingrese nombre de archivo binario: ');
+	readln(nombre_fisico);
+	assign(archivo_celus,nombre_fisico);
+	reset(archivo_celus);
+	writeln('Ingrese marca del celular: ');
+	readln(marca);
+	read(archivo_celus,celu);
+	while(celu.nombre <> marca) and not EOF(archivo_celus) do
+	begin
+		read(archivo_celus,celu);
+	end;
+	if(celu.nombre = marca) then
+	begin
+		writeln('El celular ',celu.nombre,' tiene un stock de ',celu.stock_dis,' ingrese nuevo stock: ');
+		readln(stock);
+		celu.stock_dis:=stock;
+		seek(archivo_celus,filePos(archivo_celus)-1);
+		write(archivo_celus,celu);
+	end
+	else writeln('No existe un celular con el modelo: ',marca);
+	close(archivo_celus);
+end;
+
+procedure exportarCelulares(var archivo_celus : archivo_celulares;var archivo_texto : text);
+var
+	celu : celular;
+	nombre_fisico : string;
+begin
+	writeln('Ingrese nombre de archivo binario: ');
+	readln(nombre_fisico);
+	assign(archivo_celus,nombre_fisico);
+	reset(archivo_celus);
 	writeln('Ingrese nombre de archivo de texto: ');
 	readln(nombre_fisico);
 	assign(archivo_texto,nombre_fisico);
-	reset(archivo_texto);
-	leerCelu(aggcelu);
-	flag := false;
-	while not EOF(archivo_texto) do
+	rewrite(archivo_texto);
+	while not EOF(archivo_celus)do 
 	begin
-		readln(archivo_texto,celu.cod_celular,celu.nombre);
-		readln(archivo_texto,celu.descripcion);
-		readln(archivo_texto,celu.precio,celu.stock_min,celu.stock_dis,celu.marca); 
-		if (celu.nombre = aggcelu.nombre) then flag := true;
+		read(archivo_celus,celu);
+		if(celu.stock_dis = 0)then
+		begin
+			writeln(archivo_texto,celu.cod_celular,' ',celu.nombre);
+			writeln(archivo_texto,celu.descripcion);
+			writeln(archivo_texto,celu.precio,' ',celu.stock_min,' ',celu.stock_dis,' ',celu.marca);
+		end;
 	end;
-	if (flag = false) then 
-	begin
-		writeln(archivo_texto, aggcelu.cod_celular,' ', aggcelu.nombre);
-		writeln(archivo_texto, aggcelu.descripcion);
-		writeln(archivo_texto, aggcelu.precio,' ', aggcelu.stock_min,' ', aggcelu.stock_dis,' ', aggcelu.marca);
-	end
-	else 
-	begin
-		writeln('Ya existe el modelo: ',aggcelu.nombre);
-	end;
-end;
-
+	close(archivo_texto);
+	close(archivo_celus);
+end; 
 var
 	
 	archivo_celus : archivo_celulares;
@@ -193,7 +239,9 @@ BEGIN
 		writeln('3. Buscar por descripcion');
 		writeln('4. Exportar archivo binario');
 		writeln('5. Añadir celular');
-		writeln('6. Cerrar programa');
+		writeln('6. Modificar stock');
+		writeln('7. Exportar celulares sin stock');
+		writeln('8. Cerrar programa');
 		readln(menu);
 		case menu of
 			1:
@@ -214,9 +262,17 @@ BEGIN
 			end;
 			5:
 			begin
-				anadirCelular(archivo_texto);
+				anadirCelular(archivo_celus);
+			end;
+			6:
+			begin
+				modificarStock(archivo_celus);
+			end;
+			7:
+			begin
+				exportarCelulares(archivo_celus,archivo_texto);
 			end;
 		end;
-	until (menu = 6)
+	until (menu = 8)
 END.
 
